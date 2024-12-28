@@ -9,15 +9,21 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 
 set(SOURCES
         main.c
-        src/radar.c
+        src/sensor.c
         src/servo.c
-        src/signal_handler.c
-        src/utils.c
+        include/radar_display.h
+        src/radar_display.c
+        include/config.h
+        include/pid.h
+        src/config.c
+        src/pid.c
 )
 
-add_executable(radar ${SOURCES})
+add_executable(radar ${SOURCES}
+        include/radar_display.h
+        src/radar_display.c)
 
-target_link_libraries(radar /usr/lib/libpigpio.so pthread)
+target_link_libraries(radar /usr/lib/libpigpio.so pthread m)
 
 # Unit Testing
 # enable_testing()
