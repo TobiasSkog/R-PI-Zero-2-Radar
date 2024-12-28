@@ -1,8 +1,8 @@
 #include "radar.h"
-#include "utils.h"
 #include <pigpio.h>
 #include <pthread.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 static volatile uint32_t radar_pulse_width = 0;
 static uint32_t start_tick;
@@ -41,10 +41,12 @@ void *radarPulse(void *arg) {
         if (duration >= 38000) {
             printf("Out of range\n");
         } else {
-            printf("Distance: %dcm  (%dm)\n", duration / 58, (duration / 58) / 100);
+            // Change this to update a value to visualize the radar display
+            printf("\rDistance: %dcm  (%dm)", duration / 58, (duration / 58) / 100);
+            fflush(stdout);
         }
 
-        gpioDelay(6000);
+        gpioDelay(100000);
     }
     return NULL;
 }

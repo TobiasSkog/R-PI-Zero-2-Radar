@@ -1,18 +1,17 @@
 #include "servo.h"
-#include "utils.h"
 #include <pigpio.h>
 #include <stdio.h>
 #include <unistd.h>
 
 int MIN_WIDTH = 500;
 int MAX_WIDTH = 2500;
-const float SERVO_WIDTH_TIME = 1.5f;
+const float SERVO_WIDTH_TIME = 2.0f;
 const float SERVO_TIME_PER_STEP = 0.1f;
 extern volatile uint32_t terminate;
 extern volatile uint32_t pulse_width;
 extern pthread_mutex_t servo_mutex;
 
-static int calculate_num_steps(float total_time, float time_per_step) {
+static int calculate_num_steps(float total_time, const float time_per_step) {
     return (int) ((MAX_WIDTH - MIN_WIDTH) / (total_time / time_per_step));
 }
 
@@ -22,10 +21,9 @@ void initialize_servo(void) {
 }
 
 void *servoMovement(void *arg) {
-    set_servo_range(30, 120);
+    set_servo_range(60, 150);
     int width = MIN_WIDTH;
     int step = calculate_num_steps(SERVO_WIDTH_TIME, SERVO_TIME_PER_STEP);
-
     while (!terminate) {
         gpioServo(SERVO_PIN, width);
         width += step;
@@ -33,12 +31,9 @@ void *servoMovement(void *arg) {
             step = -step;
             width += step;
         }
-
-        //printf("width: %d, step: %d\n", width, step);
-        sleep(SERVO_TIME_PER_STEP);
+        time_sleep(SERVO_TIME_PER_STEP);
     }
     cleanup_servo();
-    printf("Returning from servoMovement...\n");
     return NULL;
 }
 
