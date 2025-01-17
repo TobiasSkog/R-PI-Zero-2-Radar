@@ -9,14 +9,16 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 
 set(SOURCES
         main.c
-        src/sensor.c
+        src/config.c
+        src/pid.c
         src/servo.c
-        include/radar_display.h
+        src/sensor.c
         src/radar_display.c
         include/config.h
         include/pid.h
-        src/config.c
-        src/pid.c
+        include/servo.h
+        include/sensor.h
+        include/radar_display.h
 )
 
 add_executable(radar ${SOURCES}

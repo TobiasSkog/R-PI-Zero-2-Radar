@@ -1,19 +1,18 @@
-#include "config.h"
+#include <config.h>
+#include <sensor.h>
+#include <servo.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <pigpio.h>
-#include <unistd.h>
 #include <signal.h>
+#include <stdlib.h>
 
 pthread_t sensor_thread;
 pthread_t servo_thread;
-pthread_t limited_run_time_thread;
+volatile sig_atomic_t stop_threads = 0;
 
-PIDController pid;
-ServoController servo;
-SensorController sensor;
-ControllerArgs controllers;
-
+void system_setup(void);
+void system_shutdown(int signal_number);
 
 int main(void) {
   if (gpioInitialise() < 0) {
@@ -21,61 +20,44 @@ int main(void) {
     gpioTerminate();
     return 1;
   }
-  // Set up the PID Controller, Servo Controller and Sensor Controller
-  system_setup(&pid, &servo, &sensor);
-  controllers.servo_controller = &servo;
-  controllers.pid_controller = &pid;
+
+  system_setup();
 
   // Create Threads
-  pthread_create(&sensor_thread, NULL, sensor_measure_distance_loop, (void *) &sensor);
-  pthread_create(&servo_thread, NULL, servo_position_update_loop, (void *) &controllers);
-  //pthread_create(&limited_run_time_thread, NULL, limited_run_time, NULL); // REMOVE ME
+  pthread_create(&sensor_thread, NULL, sensor_measure_distance_loop, NULL); // (void *) &sensor);
+  pthread_create(&servo_thread, NULL, servo_position_update_loop, NULL); // (void *) &controllers);
 
   // Wait for Threads to complete
-  pthread_join(sensor_thread, NULL);
   pthread_join(servo_thread, NULL);
-  //pthread_join(limited_run_time_thread, NULL);
+  pthread_join(sensor_thread, NULL);
 
   //clear_console();
-
   printf("Exiting...\n");
   gpioTerminate();
   return 0;
 }
 
-void system_setup(PIDController *pid, ServoController *servo, SensorController *sensor) {
-  pid_init(pid);
-  servo_init(servo, SERVO_PIN, SERVO_START_POSITION, SERVO_START_SPEED);
-  sensor_init(sensor, SENSOR_TRIGGER_PIN, SENSOR_TRIGGER_PIN, SENSOR_START_DISTANCE, SENSOR_POSITION_TOLERANCE);
+void system_setup(void) {
+  if (servo_init() == -1) {
+    perror("Failed to initialize servo");
+    system_shutdown(SIGTERM);
+  }
+  if (sensor_init() == -1) {
+    perror("Failed to initialize sensor");
+    system_shutdown(SIGTERM);
+  }
+
   signal(SIGINT, system_shutdown);
   signal(SIGTERM, system_shutdown);
   signal(SIGHUP, system_shutdown);
 }
 
-// !!    LIMITED RUN TIME     !!
-// !! ONLY USED FOR DEBUGGING !!
-// void *limited_run_time(void) {
-//   time_t start, end;
-//   double elapsed;
-//   start = time(NULL);
-//   while (1) {
-//     end = time(NULL);
-//     elapsed = difftime(end, start);
-//     //30 seconds run time test
-//     if (elapsed > 120.0) {
-//     } else {
-//       usleep(100000);
-//     }
-//   }
-//   return NULL;
-// }
-
-
-// ===== SIGNAL HANDLERS =====
-//setup_signal_handlers();
-// ========== RADAR ==========
-//initialize_radar();
-// ========== SERVO ==========
-//initialize_servo();
-// ===== CONSOLE DISPLAY =====
-//initialize_console_display();
+void system_shutdown(int signal_number) {
+  printf("\nTidying up...\n");
+  stop_threads = 1;
+  pthread_cancel(sensor_thread);
+  pthread_cancel(servo_thread);
+  gpioServo(SERVO_PIN, 0);
+  gpioTerminate();
+  exit(0);
+}

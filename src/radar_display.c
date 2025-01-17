@@ -22,7 +22,7 @@ void initialize_console_display(void) {
 ///  Display: Angle, Distance, Pie-pieces every 30°, Green = Empty, Red = Found ////
 ///  180° range, x cm intervals                                                ////
 //// ========================================================================== ////
-void update_console_display(int angle, uint32_t distance) {
+void update_console_display(int, uint32_t distance) {
   memset(radar_grid, '.', sizeof(radar_grid)); // Clear the grid at each update
 
   int center = GRID_SIZE / 2;
